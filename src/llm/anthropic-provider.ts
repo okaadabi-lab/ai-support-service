@@ -6,16 +6,22 @@ import {
   type ToolCallResult,
 } from './provider.js';
 
+/** The one SDK method this provider uses; narrowed so tests can pass a stub. */
+export interface MessagesClient {
+  messages: Pick<Anthropic['messages'], 'create'>;
+}
+
 export class AnthropicProvider implements LlmProvider {
   readonly name = 'anthropic';
-  private readonly client: Anthropic;
+  private readonly client: MessagesClient;
 
   constructor(
     apiKey: string,
     readonly model: string,
+    client?: MessagesClient,
   ) {
     // Retries and timeouts are owned by withRetry so that every attempt is visible and bounded.
-    this.client = new Anthropic({ apiKey, maxRetries: 0 });
+    this.client = client ?? new Anthropic({ apiKey, maxRetries: 0 });
   }
 
   async callTool(request: ToolCallRequest): Promise<ToolCallResult> {

@@ -20,6 +20,8 @@ const REQUEST_ID = /^[A-Za-z0-9._-]{1,64}$/;
 
 export interface BuildAppOptions extends ContainerOverrides {
   logger?: boolean;
+  /** Destination for JSON log lines; defaults to stdout. */
+  logStream?: { write(line: string): void };
 }
 
 export async function buildApp(
@@ -36,6 +38,7 @@ export async function buildApp(
               paths: ['req.headers.authorization', 'headers.authorization'],
               censor: '[redacted]',
             },
+            ...(options.logStream ? { stream: options.logStream } : {}),
           },
     bodyLimit: 64 * 1024,
     // Reuse the caller's id (n8n can pass its execution id) so logs correlate across services.
