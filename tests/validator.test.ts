@@ -106,6 +106,8 @@ describe('OutputValidator', () => {
     ['Tenang kak, DP pasti dikembalikan penuh.', 'guaranteed_refund'],
     ['Refund kakak dijamin cair minggu ini.', 'guaranteed_refund'],
     ["Don't worry, we guarantee a full refund.", 'guaranteed_refund'],
+    ['Tenang kak, 100% refund kok.', 'guaranteed_refund'],
+    ['Tanggal acara kakak sudah dikunci.', 'confirmed_booking'],
     ['Tanggalnya sudah kami kunci ya kak.', 'confirmed_booking'],
     ["Great news, I've rescheduled your event.", 'confirmed_booking'],
     ['Khusus kakak kami kasih diskon 10%.', 'discount_offer'],
@@ -114,11 +116,11 @@ describe('OutputValidator', () => {
     expect(result.issues).toContainEqual({ code: 'validation_forbidden_promise', detail: rule });
   });
 
-  it('allows policy wording that mentions refunds without promising one', () => {
-    const result = validator.validate(
-      answer('Refund diperiksa dan diputuskan oleh admin sesuai kontrak ya kak.'),
-      [prices],
-    );
-    expect(result.ok).toBe(true);
+  it.each([
+    'Refund diperiksa dan diputuskan oleh admin sesuai kontrak ya kak.',
+    'Kalau sudah ganti tanggal, kabari admin ya kak.',
+    'Admin akan konfirmasi tanggalnya ya kak.',
+  ])('allows policy wording that does not make a commitment: "%s"', (reply) => {
+    expect(validator.validate(answer(reply), [prices]).ok).toBe(true);
   });
 });

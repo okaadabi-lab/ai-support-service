@@ -24,17 +24,21 @@ export const FORBIDDEN_PROMISES: ForbiddenRule[] = [
   {
     id: 'guaranteed_refund',
     pattern:
-      /\b(pasti|dijamin|jamin|garansi|guarantee[ds]?|definitely|100%)\b[^.!?\n]{0,40}\b(refund|dikembalikan|uang(nya)? (kembali|balik)|money back)/,
+      /(\b(pasti|dijamin|jamin|garansi|guarantee[ds]?|definitely)\b|100%)[^.!?\n]{0,40}\b(refund|dikembalikan|uang(nya)? (kembali|balik)|money back)/,
   },
   {
     id: 'guaranteed_refund',
-    pattern:
-      /\b(refund|dikembalikan|money back)\b[^.!?\n]{0,30}\b(pasti|dijamin|guaranteed|for sure)\b/,
+    pattern: /\b(refund|money back)\b[^.!?\n]{0,30}\b(pasti|dijamin|guaranteed|for sure)\b/,
   },
   {
     id: 'confirmed_booking',
     pattern:
-      /\b(sudah|udah|telah) (kami |saya |aku )?(kunci|kuncikan|booking|book|konfirmasi|tahan|amankan|ganti|ubah|pindah|reschedule)\b/,
+      /\b(sudah|udah|telah) (kami|saya|aku) (kunci|kuncikan|booking|book|konfirmasi|tahan|amankan|ganti|ubah|pindah|reschedule)\b/,
+  },
+  {
+    id: 'confirmed_booking',
+    pattern:
+      /\b(sudah|udah|telah) (dikunci|dibooking|dikonfirmasi|ditahan|diamankan|diganti|diubah|dipindah|direschedule)\b/,
   },
   {
     id: 'confirmed_booking',

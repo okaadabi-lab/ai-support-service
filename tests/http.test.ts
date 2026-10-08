@@ -1,5 +1,7 @@
+import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { generateApiKey, hashApiKey } from '../src/auth/api-keys.js';
+import { registerApiKeyAuth } from '../src/http/auth-plugin.js';
 import { createTestApp, message, type TestApp } from './helpers.js';
 
 describe('HTTP API', () => {
@@ -57,6 +59,14 @@ describe('HTTP API', () => {
         headers: { authorization: `Bearer ${ctx.adminKey}` },
       });
       expect(asAdmin.statusCode).toBe(200);
+    });
+
+    it('refuses to register an authenticated route that declares no scope', async () => {
+      ctx = await createTestApp();
+      const app = Fastify({ logger: false });
+      registerApiKeyAuth(app, ctx.app.container.authenticator);
+      expect(() => app.get('/v1/unscoped', async () => ({}))).toThrow(/must declare config.scope/);
+      await app.close();
     });
 
     it('serves /health without a key', async () => {
