@@ -1,0 +1,30 @@
+{"text":"kak brp hrg paket nikahan yg buat 300an tamu?","intent":"pricing_question","language":"id"}
+{"text":"Selamat siang, mohon informasi harga Paket Anggrek beserta isinya.","intent":"pricing_question","language":"id"}
+{"text":"min pricelist dekor lamaran dong","intent":"pricing_question","language":"id"}
+{"text":"How much is the decoration for a kid's birthday party?","intent":"pricing_question","language":"en"}
+{"text":"ongkir ke tangerang selatan kena berapa ya kak","intent":"pricing_question","language":"id"}
+{"text":"tgl 14 feb 2027 masih kosong ga kak?","intent":"availability_question","language":"id"}
+{"text":"Apakah tanggal 20 Desember masih tersedia untuk acara pernikahan di Bekasi?","intent":"availability_question","language":"id"}
+{"text":"Is the second Saturday of March still available?","intent":"availability_question","language":"en"}
+{"text":"kak biasanya harus booking brp bulan sebelumnya biar ga keabisan tanggal","intent":"availability_question","language":"id"}
+{"text":"kak acaraku mau diundur 2 minggu bisa ga ya","intent":"booking_change","language":"id"}
+{"text":"Saya ingin mengganti paket dari Anggrek ke Kenanga untuk acara bulan depan.","intent":"booking_change","language":"id"}
+{"text":"We need to move our engagement date because the venue changed, how do we do that?","intent":"booking_change","language":"en"}
+{"text":"lokasi acaranya pindah ke gedung lain kak, gimana prosesnya","intent":"booking_change","language":"id"}
+{"text":"kecewa bgt sih, bunganya layu semua pas acara mulai","intent":"complaint","language":"id"}
+{"text":"Kru datang terlambat dua jam dan pelaminan belum selesai saat tamu datang. Ini sangat mengecewakan.","intent":"complaint","language":"id"}
+{"text":"The lighting kept flickering the whole night, honestly disappointing for the price we paid.","intent":"complaint","language":"en"}
+{"text":"min aku mau batalin acara dan minta DP ku dibalikin","intent":"refund_request","language":"id"}
+{"text":"Kami membatalkan pesanan karena acara ditiadakan. Mohon proses pengembalian dana kami.","intent":"refund_request","language":"id"}
+{"text":"I'd like a refund for the photobooth add-on, it was never set up.","intent":"refund_request","language":"en"}
+{"text":"bisa ngomong sama admin langsung aja ga? jangan bot","intent":"human_request","language":"id"}
+{"text":"Mohon disambungkan dengan pemilik usaha, saya ingin diskusi kerja sama.","intent":"human_request","language":"id"}
+{"text":"Can I talk to a real person please?","intent":"human_request","language":"en"}
+{"text":"halooo kak","intent":"greeting","language":"id"}
+{"text":"Assalamualaikum, selamat pagi.","intent":"greeting","language":"id"}
+{"text":"makasih ya kak infonya","intent":"greeting","language":"id"}
+{"text":"Hi there!","intent":"greeting","language":"en"}
+{"text":"bisa bayar pake qris ga kak?","intent":"other","language":"id"}
+{"text":"Kru biasanya datang jam berapa untuk pemasangan?","intent":"other","language":"id"}
+{"text":"do you guys cover Depok?","intent":"other","language":"en"}
+{"text":"kak kalian ada lowongan kerja ga","intent":"other","language":"id"}
