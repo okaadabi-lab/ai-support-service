@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export interface ChatTurn {
   role: 'user' | 'assistant';
   content: string;
@@ -7,6 +9,13 @@ export interface ToolDefinition {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+}
+
+/** JSON Schema for a tool's input, without the `$schema` dialect marker zod adds. */
+export function toolInputSchema(schema: z.ZodType): Record<string, unknown> {
+  const jsonSchema = z.toJSONSchema(schema) as Record<string, unknown>;
+  delete jsonSchema.$schema;
+  return jsonSchema;
 }
 
 export interface ToolCallRequest {

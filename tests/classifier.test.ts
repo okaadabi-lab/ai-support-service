@@ -37,6 +37,7 @@ describe('IntentClassifier', () => {
     });
     const call = provider.calls[0];
     expect(call?.tool.name).toBe(CLASSIFY_TOOL.name);
+    expect(call?.tool.inputSchema).not.toHaveProperty('$schema');
     expect(call?.tool.inputSchema).toMatchObject({
       type: 'object',
       required: ['intent', 'confidence', 'language'],

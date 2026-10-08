@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { LlmProvider } from '../llm/provider.js';
+import { type LlmProvider, toolInputSchema } from '../llm/provider.js';
 import { type PromptRegistry, renderPrompt } from '../llm/prompts.js';
 import { RetryExhaustedError, type RetryOptions, withRetry } from '../llm/retry.js';
 import type { RetrievedArticle } from '../retrieval/retriever.js';
@@ -18,7 +18,7 @@ export const ANSWER_TOOL = {
   name: 'compose_answer',
   description:
     'Return the chat reply for the customer, the ids of the articles it relies on, and confidence.',
-  inputSchema: z.toJSONSchema(answerSchema) as Record<string, unknown>,
+  inputSchema: toolInputSchema(answerSchema),
 };
 
 export type ResponderResult =

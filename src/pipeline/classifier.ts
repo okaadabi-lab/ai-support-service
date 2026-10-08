@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { LlmProvider } from '../llm/provider.js';
+import { type LlmProvider, toolInputSchema } from '../llm/provider.js';
 import { type PromptRegistry, renderPrompt } from '../llm/prompts.js';
 import { RetryExhaustedError, type RetryOptions, withRetry } from '../llm/retry.js';
 import { renderTranscript } from './history.js';
@@ -24,7 +24,7 @@ export const classificationSchema = z.object({
 export const CLASSIFY_TOOL = {
   name: 'classify_message',
   description: 'Record the intent, language and confidence for the latest customer message.',
-  inputSchema: z.toJSONSchema(classificationSchema) as Record<string, unknown>,
+  inputSchema: toolInputSchema(classificationSchema),
 };
 
 export interface Classification {
