@@ -166,8 +166,8 @@ normalise them, and call this service with an **HTTP Request** node:
   (store it as an n8n credential, not in the node)
 - Header `X-Request-Id: {{ $execution.id }}` so logs of both systems can be joined
 - Body: the request shape above, mapping the channel's message id to `external_message_id`
-- Timeout: longer than `LLM_TIMEOUT_MS x LLM_MAX_ATTEMPTS` for two LLM calls plus backoff
-  (about 60 s with the defaults)
+- Timeout: at least `2 x LLM_TIMEOUT_MS x LLM_MAX_ATTEMPTS` plus backoff, because a message can
+  need two LLM calls (about 95 s with the defaults; lower `LLM_MAX_ATTEMPTS` to shorten it)
 
 A **Switch** node on `action` then routes:
 

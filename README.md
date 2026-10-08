@@ -326,6 +326,9 @@ fake provider it measures only the keyword rules.
 - No admin UI, key revocation endpoint, or data retention job yet; message text is stored in
   plain form in SQLite.
 - The evaluation set is small and only covers intent classification, not answer quality.
+- Structured output relies on forcing a specific tool (`tool_choice: {type: "tool"}`). Not every
+  model accepts that; a model that rejects it would need the provider to switch to structured
+  outputs or `auto` tool choice with strict schemas. The default Haiku model supports it.
 
 ## License
 
