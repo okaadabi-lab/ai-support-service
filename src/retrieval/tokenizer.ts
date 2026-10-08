@@ -111,7 +111,9 @@ const CANONICAL: Record<string, string> = {
   dates: 'tanggal',
   available: 'tersedia',
   availability: 'tersedia',
+  ketersediaan: 'tersedia',
   kosong: 'tersedia',
+  free: 'tersedia',
   cancel: 'batal',
   cancellation: 'batal',
   pembatalan: 'batal',
@@ -126,6 +128,8 @@ const CANONICAL: Record<string, string> = {
   pindah: 'reschedule',
   payment: 'bayar',
   pay: 'bayar',
+  methods: 'metode',
+  method: 'metode',
   pembayaran: 'bayar',
   bayarnya: 'bayar',
   transfer: 'bayar',
@@ -135,6 +139,8 @@ const CANONICAL: Record<string, string> = {
   areas: 'area',
   wilayah: 'area',
   coverage: 'area',
+  cover: 'area',
+  serve: 'area',
   jkt: 'jakarta',
   bks: 'bekasi',
   setup: 'pemasangan',
@@ -148,6 +154,12 @@ const CANONICAL: Record<string, string> = {
   nikahan: 'pernikahan',
   engagement: 'lamaran',
   birthday: 'ulang',
+  kid: 'anak',
+  kids: 'anak',
+  custom: 'kustom',
+  percent: 'persen',
+  buka: 'operasional',
+  hours: 'operasional',
 };
 
 export function normalizeText(text: string): string {
@@ -156,7 +168,11 @@ export function normalizeText(text: string): string {
 
 export function tokenize(text: string): string[] {
   const tokens: string[] = [];
-  for (const raw of normalizeText(text).split(/[^a-z0-9]+/)) {
+  // "30%" and "30 persen" should match each other.
+  const words = normalizeText(text)
+    .replace(/%/g, ' persen ')
+    .split(/[^a-z0-9]+/);
+  for (const raw of words) {
     if (raw.length < 2 || STOPWORDS.has(raw)) {
       continue;
     }
