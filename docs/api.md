@@ -88,7 +88,8 @@ Response (`201` when processed now, `200` when replayed; header `Idempotent-Repl
 | `none`     | A human is handling this conversation. Send nothing; `reply_text` is `null`.                             |
 
 `confidence` is the answer confidence for drafted answers, otherwise the classifier confidence,
-and `null` when nothing was classified. `intent` is `null` for `none`.
+and `null` when nothing was classified. `intent` and `confidence` are `null` for `none`, which is
+also returned when an agent took the conversation over while the message was being processed.
 
 ### Reason codes
 
@@ -112,7 +113,8 @@ the same draft).
 
 `(channel, external_message_id)` is unique. Sending the same message again returns the stored
 decision with status `200` and does not call the LLM. Concurrent duplicates inside one process
-wait for the first one. The customer message, its decision, the outgoing text and the hand-off
+wait for the first one; duplicates handled by two processes at once may both call the LLM, but
+only the first decision is stored and both return it. The customer message, its decision, the outgoing text and the hand-off
 switch are written in one transaction, so a retry after a crash either finds the full decision
 or processes the message from scratch.
 
@@ -158,7 +160,9 @@ the configured per-million-token prices.
 
 ## Calling this service from n8n (`omnichannel-inbox-automation`)
 
-The n8n workflows in `omnichannel-inbox-automation` receive WhatsApp and Instagram webhooks,
+The n8n workflows in
+[`omnichannel-inbox-automation`](https://github.com/__GITHUB_USER__/omnichannel-inbox-automation)
+receive WhatsApp, Instagram and Telegram webhooks,
 normalise them, and call this service with an **HTTP Request** node:
 
 - Method `POST`, URL `http://<host>:8083/v1/messages`
