@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { generateApiKey } from '../src/auth/api-keys.js';
 import { type AppConfig, loadConfig } from '../src/config.js';
-import { openDatabase } from '../src/db/database.js';
+import { type Db, openDatabase } from '../src/db/database.js';
 import { FakeProvider } from '../src/llm/fake-provider.js';
 import type { IncomingMessage, PipelineResponse } from '../src/pipeline/message-pipeline.js';
 import { ApiKeyRepository, type Scope } from '../src/repositories/api-key-repository.js';
@@ -55,9 +55,11 @@ export function message(overrides: Partial<IncomingMessage> = {}): IncomingMessa
   };
 }
 
-export async function createTestApp(env: Record<string, string> = {}): Promise<TestApp> {
+export async function createTestApp(
+  env: Record<string, string> = {},
+  db: Db = openDatabase(':memory:'),
+): Promise<TestApp> {
   const config = testConfig(env);
-  const db = openDatabase(':memory:');
   const provider = new FakeProvider();
   const app = await buildApp(config, {
     db,

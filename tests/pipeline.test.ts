@@ -1,6 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { openDatabase } from '../src/db/database.js';
 import { LlmError } from '../src/llm/provider.js';
-import { createTestApp, type TestApp } from './helpers.js';
+import { createTestApp, message, type TestApp } from './helpers.js';
 
 const classified = (intent: string, confidence = 0.9, language = 'id') => ({
   input: { intent, confidence, language },
@@ -123,6 +127,79 @@ describe('MessagePipeline via POST /v1/messages', () => {
       expect(a.body).toEqual(b.body);
       expect(ctx.provider.callsFor('classify_message')).toHaveLength(1);
       expect([a.statusCode, b.statusCode].sort()).toEqual([200, 201]);
+    });
+
+    it('lets a duplicate that arrives mid-pipeline wait for the first instead of calling the LLM', async () => {
+      const { pipeline } = ctx.app.container;
+      const incoming = message({ external_message_id: 'wamid.inflight' });
+      // Both calls enter handle() before either reaches the provider.
+      const [first, second] = await Promise.all([
+        pipeline.handle(incoming, ctx.app.log),
+        pipeline.handle(incoming, ctx.app.log),
+      ]);
+
+      expect(ctx.provider.callsFor('classify_message')).toHaveLength(1);
+      expect([first.replayed, second.replayed]).toEqual([false, true]);
+      expect(second.response).toEqual(first.response);
+    });
+
+    it('returns the stored decision when another instance saved the same message first', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'support-'));
+      const path = join(dir, 'shared.db');
+      const other = await createTestApp({}, openDatabase(path));
+      const self = await createTestApp({}, openDatabase(path));
+      try {
+        const incoming = message({ external_message_id: 'wamid.two-instances' });
+        const [a, b] = await Promise.all([
+          other.app.container.pipeline.handle(incoming, other.app.log),
+          self.app.container.pipeline.handle(incoming, self.app.log),
+        ]);
+
+        // Both instances paid for an LLM call; only one decision exists and both return it.
+        expect([a.replayed, b.replayed].sort()).toEqual([false, true]);
+        expect(b.response).toEqual(a.response);
+        const customerMessages = self.app.container.messages
+          .listByConversation(a.response.conversation_id)
+          .filter((stored) => stored.role === 'customer');
+        expect(customerMessages).toHaveLength(1);
+      } finally {
+        await other.app.close();
+        await self.app.close();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('stores nothing when saving the decision fails, so a retry processes the message again', async () => {
+      const { decisions, messages } = ctx.app.container;
+      vi.spyOn(decisions, 'insert').mockImplementationOnce(() => {
+        throw new Error('disk I/O error at /var/lib/support.db');
+      });
+      const payload = { external_message_id: 'wamid.atomic', customer_id: 'c-atomic' };
+
+      const failed = await ctx.send(payload);
+      expect(failed.statusCode).toBe(500);
+      expect(failed.body).toEqual({
+        error: { code: 'internal_error', message: 'Internal server error' },
+      });
+      expect(messages.findIdByExternalId('whatsapp', 'wamid.atomic')).toBeUndefined();
+
+      const retried = await ctx.send(payload);
+      expect(retried.statusCode).toBe(201);
+      expect(retried.body.action).toBe('reply');
+    });
+
+    it('rejects a duplicate customer message at the database level', () => {
+      const { conversations, messages } = ctx.app.container;
+      const conversation = conversations.upsert('whatsapp', 'c-unique', null);
+      const row = {
+        conversationId: conversation.id,
+        channel: 'whatsapp',
+        externalMessageId: 'wamid.unique',
+        text: 'halo',
+        receivedAt: '2026-10-09T03:00:00Z',
+      };
+      messages.insertCustomerMessage(row);
+      expect(() => messages.insertCustomerMessage(row)).toThrow(/UNIQUE/);
     });
 
     it('treats the same external id on a different channel as a different message', async () => {

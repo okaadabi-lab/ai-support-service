@@ -40,6 +40,18 @@ describe('HTTP API', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    it('rejects a revoked key', async () => {
+      ctx = await createTestApp();
+      const key = ctx.createKey(['messages:write']);
+      expect((await ctx.send({}, key)).statusCode).toBe(201);
+
+      const [, prefix] = key.split('_');
+      ctx.app.container.db
+        .prepare("UPDATE api_keys SET revoked_at = '2026-10-09T00:00:00Z' WHERE key_prefix = ?")
+        .run(prefix);
+      expect((await ctx.send({}, key)).statusCode).toBe(401);
+    });
+
     it('enforces scopes per route', async () => {
       ctx = await createTestApp();
       const { body } = await ctx.send();
