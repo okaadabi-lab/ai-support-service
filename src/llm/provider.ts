@@ -47,7 +47,12 @@ export interface LlmProvider {
 }
 
 export type LlmErrorKind =
-  'timeout' | 'rate_limited' | 'server_error' | 'client_error' | 'no_tool_call';
+  | 'timeout'
+  | 'connection_error'
+  | 'rate_limited'
+  | 'server_error'
+  | 'client_error'
+  | 'no_tool_call';
 
 export class LlmError extends Error {
   constructor(
@@ -60,7 +65,12 @@ export class LlmError extends Error {
   }
 
   get retryable(): boolean {
-    return this.kind === 'timeout' || this.kind === 'rate_limited' || this.kind === 'server_error';
+    return (
+      this.kind === 'timeout' ||
+      this.kind === 'connection_error' ||
+      this.kind === 'rate_limited' ||
+      this.kind === 'server_error'
+    );
   }
 
   static fromStatus(status: number, message: string): LlmError {

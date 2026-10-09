@@ -1,4 +1,4 @@
-import { APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
+import Anthropic, { APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import { AnthropicProvider, type MessagesClient } from '../src/llm/anthropic-provider.js';
 import { LlmError, type ToolCallRequest } from '../src/llm/provider.js';
@@ -74,6 +74,82 @@ describe('AnthropicProvider', () => {
     await expect(providerReturning(create).callTool(request())).rejects.toMatchObject({
       kind: 'timeout',
       retryable: true,
+    });
+  });
+
+  describe('with the real SDK client and a stubbed fetch', () => {
+    function providerWithFetch(fetch: (url: unknown, init?: RequestInit) => Promise<Response>) {
+      const client = new Anthropic({ apiKey: 'test-key', maxRetries: 0, fetch });
+      return new AnthropicProvider('test-key', 'claude-haiku-5-5', client);
+    }
+
+    it('sends a forced tool call that the SDK serialises as expected', async () => {
+      const bodies: unknown[] = [];
+      const provider = providerWithFetch((_url, init) => {
+        bodies.push(JSON.parse(init?.body as string));
+        return Promise.resolve(
+          Response.json({
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-haiku-5-5',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_1',
+                name: 'classify_message',
+                input: { intent: 'greeting', confidence: 0.9, language: 'id' },
+              },
+            ],
+            stop_reason: 'tool_use',
+            stop_sequence: null,
+            usage: { input_tokens: 42, output_tokens: 7 },
+          }),
+        );
+      });
+
+      const result = await provider.callTool(request());
+
+      expect(result).toEqual({
+        input: { intent: 'greeting', confidence: 0.9, language: 'id' },
+        usage: { inputTokens: 42, outputTokens: 7 },
+      });
+      expect(bodies[0]).toMatchObject({
+        model: 'claude-haiku-5-5',
+        system: 'system prompt',
+        messages: [{ role: 'user', content: 'halo' }],
+        tool_choice: { type: 'tool', name: 'classify_message' },
+        tools: [
+          {
+            name: 'classify_message',
+            input_schema: { type: 'object', required: ['intent', 'confidence', 'language'] },
+          },
+        ],
+      });
+    });
+
+    it('maps a network failure to a retryable connection error', async () => {
+      const provider = providerWithFetch(() => Promise.reject(new TypeError('fetch failed')));
+      await expect(provider.callTool(request())).rejects.toMatchObject({
+        kind: 'connection_error',
+        retryable: true,
+      });
+    });
+
+    it('maps an overloaded 529 response to a retryable server error', async () => {
+      const provider = providerWithFetch(() =>
+        Promise.resolve(
+          Response.json(
+            { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } },
+            { status: 529 },
+          ),
+        ),
+      );
+      await expect(provider.callTool(request())).rejects.toMatchObject({
+        kind: 'server_error',
+        status: 529,
+        retryable: true,
+      });
     });
   });
 });

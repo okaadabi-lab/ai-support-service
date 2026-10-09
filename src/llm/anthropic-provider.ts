@@ -1,4 +1,8 @@
-import Anthropic, { APIConnectionTimeoutError, APIError } from '@anthropic-ai/sdk';
+import Anthropic, {
+  APIConnectionError,
+  APIConnectionTimeoutError,
+  APIError,
+} from '@anthropic-ai/sdk';
 import {
   LlmError,
   type LlmProvider,
@@ -67,6 +71,10 @@ export class AnthropicProvider implements LlmProvider {
 function mapError(error: unknown): unknown {
   if (error instanceof APIConnectionTimeoutError) {
     return new LlmError('timeout', error.message);
+  }
+  // DNS failures and connection resets carry no HTTP status but are worth retrying.
+  if (error instanceof APIConnectionError) {
+    return new LlmError('connection_error', error.message);
   }
   if (error instanceof APIError && typeof error.status === 'number') {
     return LlmError.fromStatus(error.status, error.message);
