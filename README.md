@@ -3,7 +3,7 @@
 Customer-support message service that classifies intent with an LLM, answers only from a vetted
 knowledge base, validates the output, and escalates to a human when it should.
 
-[![CI](https://github.com/__GITHUB_USER__/ai-support-service/actions/workflows/ci.yml/badge.svg)](https://github.com/__GITHUB_USER__/ai-support-service/actions/workflows/ci.yml)
+[![CI](https://github.com/okaadabi-lab/ai-support-service/actions/workflows/ci.yml/badge.svg)](https://github.com/okaadabi-lab/ai-support-service/actions/workflows/ci.yml)
 
 > Portfolio project. All data in this repository (business, knowledge base, prices, customers,
 > evaluation messages) is fictional sample data.
@@ -235,7 +235,7 @@ npm run typecheck
 
 ## Part of a portfolio
 
-[omnichannel-inbox-automation](https://github.com/__GITHUB_USER__/omnichannel-inbox-automation)
+[omnichannel-inbox-automation](https://github.com/okaadabi-lab/omnichannel-inbox-automation)
 normalises WhatsApp, Instagram and Telegram webhooks in n8n and calls `POST /v1/messages` for each
 inbound message, then sends or escalates based on the returned `action`.
 

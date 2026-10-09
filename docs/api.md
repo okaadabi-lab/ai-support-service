@@ -161,7 +161,7 @@ the configured per-million-token prices.
 ## Calling this service from n8n (`omnichannel-inbox-automation`)
 
 The n8n workflows in
-[`omnichannel-inbox-automation`](https://github.com/__GITHUB_USER__/omnichannel-inbox-automation)
+[`omnichannel-inbox-automation`](https://github.com/okaadabi-lab/omnichannel-inbox-automation)
 receive WhatsApp, Instagram and Telegram webhooks,
 normalise them, and call this service with an **HTTP Request** node:
 
