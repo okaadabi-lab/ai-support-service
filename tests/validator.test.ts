@@ -1,7 +1,9 @@
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Article } from '../src/knowledge/knowledge-base.js';
+import { type Article, KnowledgeBase } from '../src/knowledge/knowledge-base.js';
 import { extractAmounts, parseLocalizedNumber } from '../src/pipeline/amounts.js';
-import { OutputValidator } from '../src/pipeline/validator.js';
+import { FORBIDDEN_PROMISES, OutputValidator } from '../src/pipeline/validator.js';
+import { normalizeText } from '../src/retrieval/tokenizer.js';
 
 const prices: Article = {
   id: 'paket-dan-harga',
@@ -111,6 +113,21 @@ describe('OutputValidator', () => {
     ['Tanggalnya sudah kami kunci ya kak.', 'confirmed_booking'],
     ["Great news, I've rescheduled your event.", 'confirmed_booking'],
     ['Khusus kakak kami kasih diskon 10%.', 'discount_offer'],
+    ['Sure! We will give you a full refund.', 'guaranteed_refund'],
+    ['Of course, you will get a full refund.', 'guaranteed_refund'],
+    ['Your refund has been approved.', 'guaranteed_refund'],
+    ['Refund kakak sudah disetujui ya.', 'guaranteed_refund'],
+    ['Siap kak, kami akan refund penuh uang kakak.', 'guaranteed_refund'],
+    ['Baik kak, uang kakak akan kami kembalikan semua.', 'guaranteed_refund'],
+    ['DP kakak akan dikembalikan full.', 'guaranteed_refund'],
+    ['Dana kakak sudah kami transfer balik.', 'guaranteed_refund'],
+    ['I promise everything will be fine.', 'explicit_promise'],
+    ['Your booking is confirmed for 12 December.', 'confirmed_booking'],
+    ['Booking kakak sudah fix ya.', 'confirmed_booking'],
+    ['Tanggal 12 Desember sudah kami catat ya kak.', 'confirmed_booking'],
+    ['Your date is locked in.', 'confirmed_booking'],
+    ['Kami kasih potongan ya kak.', 'discount_offer'],
+    ['Gratis ongkir khusus kakak.', 'discount_offer'],
   ])('blocks the forbidden promise in "%s"', (reply, rule) => {
     const result = validator.validate(answer(reply), [prices]);
     expect(result.issues).toContainEqual({ code: 'validation_forbidden_promise', detail: rule });
@@ -120,7 +137,23 @@ describe('OutputValidator', () => {
     'Refund diperiksa dan diputuskan oleh admin sesuai kontrak ya kak.',
     'Kalau sudah ganti tanggal, kabari admin ya kak.',
     'Admin akan konfirmasi tanggalnya ya kak.',
+    'Jika kami yang membatalkan, seluruh pembayaran dikembalikan penuh kak.',
+    'Tanggal baru dianggap terkunci setelah DP diterima dan dikonfirmasi admin kak.',
   ])('allows policy wording that does not make a commitment: "%s"', (reply) => {
     expect(validator.validate(answer(reply), [prices]).ok).toBe(true);
+  });
+
+  it('lets every sentence of the knowledge base through the forbidden-promise rules', () => {
+    const knowledge = KnowledgeBase.loadFromDirectory(resolve(import.meta.dirname, '../knowledge'));
+    const sentences = knowledge.articles.flatMap((article) =>
+      `${article.title}\n${article.body}`.split(/(?<=[.!?:])\s+|\n+/),
+    );
+    expect(sentences.length).toBeGreaterThan(50);
+    const matches = sentences.flatMap((sentence) =>
+      FORBIDDEN_PROMISES.filter((rule) => rule.pattern.test(normalizeText(sentence))).map(
+        (rule) => `${rule.id}: ${sentence}`,
+      ),
+    );
+    expect(matches).toEqual([]);
   });
 });

@@ -19,7 +19,9 @@ interface ForbiddenRule {
 }
 
 // Commitments only an admin may make. Matching is intentionally broad: a false positive
-// escalates to a human, a false negative sends a promise the business may not keep.
+// escalates to a human, a false negative sends a promise the business may not keep. Policy
+// sentences from the knowledge base ("50% dari DP dikembalikan") must not match; a test
+// checks every knowledge-base sentence against these rules.
 export const FORBIDDEN_PROMISES: ForbiddenRule[] = [
   {
     id: 'guaranteed_refund',
@@ -31,9 +33,42 @@ export const FORBIDDEN_PROMISES: ForbiddenRule[] = [
     pattern: /\b(refund|money back)\b[^.!?\n]{0,30}\b(pasti|dijamin|guaranteed|for sure)\b/,
   },
   {
+    id: 'guaranteed_refund',
+    pattern: /(\b(full|complete)|100%)\s+refund|\brefund\w*\s+(penuh|full)\b/,
+  },
+  {
+    id: 'guaranteed_refund',
+    pattern:
+      /\b(kami|saya|aku)\s+((akan|bakal|pasti|langsung)\s+)?(refund|kembalikan|kembaliin|balikin|transfer balik)\b/,
+  },
+  {
+    id: 'guaranteed_refund',
+    pattern:
+      /\b(akan|bakal|pasti)\s+(di)?(refund|kembalikan|balikin)\w*\s+(full|penuh|semua(nya)?|seluruhnya|100%)/,
+  },
+  {
+    id: 'guaranteed_refund',
+    pattern:
+      /\b(we|i)('ll| will| can| are going to)?\s+(refund|reimburse|(give|issue|send|process)\s+(you\s+)?(a\s+|your\s+)?(full\s+|complete\s+)?(refund|money back))\b/,
+  },
+  {
+    id: 'guaranteed_refund',
+    pattern:
+      /\byou('ll| will)\s+(definitely\s+)?(get|receive)\s+(a\s+|your\s+)?(full\s+|complete\s+)?(refund|money back|deposit back)\b/,
+  },
+  {
+    id: 'guaranteed_refund',
+    pattern:
+      /\b(refund|pengembalian dana)\w*\s+(\w+\s+){0,2}(sudah|udah|telah|has been|is|was)\s+(disetujui|approved|di-?acc|diproses|processed|cair)\b/,
+  },
+  {
+    id: 'explicit_promise',
+    pattern: /\b(i|we)\s+(promise|guarantee)\b|\b(saya|kami|aku)\s+(janji|jamin)\b/,
+  },
+  {
     id: 'confirmed_booking',
     pattern:
-      /\b(sudah|udah|telah) (kami|saya|aku) (kunci|kuncikan|booking|book|konfirmasi|tahan|amankan|ganti|ubah|pindah|reschedule)\b/,
+      /\b(sudah|udah|telah) (kami|saya|aku) (kunci|kuncikan|booking|book|konfirmasi|tahan|amankan|ganti|ubah|pindah|reschedule|catat|catatkan|jadwalkan|reservasi)\b/,
   },
   {
     id: 'confirmed_booking',
@@ -50,12 +85,22 @@ export const FORBIDDEN_PROMISES: ForbiddenRule[] = [
       /\b(tanggal(nya)?|your date|the date) (sudah |udah |is )?(aman|confirmed|terkonfirmasi)\b/,
   },
   {
-    id: 'discount_offer',
-    pattern: /\b(kasih|dapat|dapet|beri|berikan|ada|kami kasih) (diskon|potongan harga|promo)\b/,
+    id: 'confirmed_booking',
+    pattern:
+      /\b(booking|reservasi|reservation|tanggal|date|jadwal)\w*\b[^.!?\n]{0,30}\b(is|are|sudah|udah|telah|has been)\s+(confirmed|locked|reserved|secured|booked|fix|aman|terkonfirmasi|terkunci|dikunci)\b/,
   },
   {
     id: 'discount_offer',
-    pattern: /\b(give|offer|get|have) (you )?(a |an )?(special )?(discount|promo)\b/,
+    pattern: /\b(kasih|dapat|dapet|beri|berikan|ada|kami kasih) (diskon|potongan|promo)\b/,
+  },
+  {
+    id: 'discount_offer',
+    pattern: /\b(give|offer|get|have) (you )?(a |an )?(special )?(discount|promo)\b|\d\s*% off\b/,
+  },
+  {
+    id: 'discount_offer',
+    pattern:
+      /\b(khusus|spesial|special)\s+((buat|untuk|for)\s+)?(kakak|kamu|anda|you)\b|\bjust for you\b/,
   },
 ];
 
