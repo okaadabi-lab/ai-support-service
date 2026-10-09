@@ -105,9 +105,10 @@ export interface KeywordClassification {
 }
 
 /**
- * Used when the LLM classifier is unavailable. The policy always escalates a fallback
- * classification, so this result only labels the hand-off for the human queue and picks the
- * language of the holding message. It never authorises an automated answer.
+ * Used in two ways. When the LLM classifier is unavailable, its result labels the hand-off and
+ * picks the language of the holding message; the policy always escalates it. When the LLM did
+ * answer, a refund, human-request or complaint match still forces an escalation. It never
+ * authorises an automated answer.
  */
 export function classifyByKeywords(text: string): KeywordClassification {
   const normalized = normalizeText(text).trim();

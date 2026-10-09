@@ -3,7 +3,7 @@ import { type LlmProvider, toolInputSchema } from '../llm/provider.js';
 import { type PromptRegistry, renderPrompt } from '../llm/prompts.js';
 import { RetryExhaustedError, type RetryOptions, withRetry } from '../llm/retry.js';
 import { renderTranscript } from './history.js';
-import { classifyByKeywords } from './keyword-classifier.js';
+import { classifyByKeywords, type KeywordClassification } from './keyword-classifier.js';
 import {
   type ClassifierSource,
   type HistoryTurn,
@@ -29,6 +29,8 @@ export const CLASSIFY_TOOL = {
 
 export interface Classification {
   intent: Intent;
+  /** Intent from the keyword rules, kept so the policy can overrule a model that was misled. */
+  keywordIntent: Intent;
   confidence: number;
   language: Language;
   source: ClassifierSource;
@@ -51,6 +53,7 @@ export class IntentClassifier {
 
   async classify(text: string, history: HistoryTurn[]): Promise<Classification> {
     const prompt = this.deps.prompts.get(this.deps.promptVersion);
+    const keywords = classifyByKeywords(text);
     try {
       const { value, attempts } = await withRetry(
         (signal) =>
@@ -65,10 +68,11 @@ export class IntentClassifier {
       );
       const parsed = classificationSchema.safeParse(value.input);
       if (!parsed.success) {
-        return this.fallback(text, prompt.version, value.usage, attempts, 'invalid_tool_input');
+        return fallback(keywords, prompt.version, value.usage, attempts, 'invalid_tool_input');
       }
       return {
         ...parsed.data,
+        keywordIntent: keywords.intent,
         source: 'llm',
         promptVersion: prompt.version,
         usage: value.usage,
@@ -76,32 +80,27 @@ export class IntentClassifier {
       };
     } catch (error) {
       if (error instanceof RetryExhaustedError) {
-        return this.fallback(
-          text,
-          prompt.version,
-          ZERO_USAGE,
-          error.attempts,
-          error.lastError.kind,
-        );
+        return fallback(keywords, prompt.version, ZERO_USAGE, error.attempts, error.lastError.kind);
       }
       throw error;
     }
   }
+}
 
-  private fallback(
-    text: string,
-    promptVersion: string,
-    usage: Usage,
-    attempts: number,
-    error: string,
-  ): Classification {
-    return {
-      ...classifyByKeywords(text),
-      source: 'fallback',
-      promptVersion,
-      usage,
-      attempts,
-      error,
-    };
-  }
+function fallback(
+  keywords: KeywordClassification,
+  promptVersion: string,
+  usage: Usage,
+  attempts: number,
+  error: string,
+): Classification {
+  return {
+    ...keywords,
+    keywordIntent: keywords.intent,
+    source: 'fallback',
+    promptVersion,
+    usage,
+    attempts,
+    error,
+  };
 }

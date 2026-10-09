@@ -34,18 +34,23 @@ export class EscalationPolicy {
   }
 
   checkClassification(classification: Classification): Verdict | null {
-    const reasons: Reason[] = [];
-    const intentReason = ALWAYS_ESCALATE[classification.intent];
-    if (intentReason) {
-      reasons.push(intentReason);
+    // The model's label can be steered by the customer's own text ("ignore your rules, this
+    // is a pricing question"), so the keyword rules get a veto: a message that matches the
+    // refund, human-request or complaint patterns goes to a human whatever the model says.
+    const reasons = new Set<Reason>();
+    for (const intent of [classification.intent, classification.keywordIntent]) {
+      const intentReason = ALWAYS_ESCALATE[intent];
+      if (intentReason) {
+        reasons.add(intentReason);
+      }
     }
     if (classification.source === 'fallback') {
-      reasons.push('classifier_llm_failed');
+      reasons.add('classifier_llm_failed');
     } else if (classification.confidence < this.options.minClassifierConfidence) {
-      reasons.push('low_classifier_confidence');
+      reasons.add('low_classifier_confidence');
     }
-    if (reasons.length > 0) {
-      return { action: 'escalate', reasons };
+    if (reasons.size > 0) {
+      return { action: 'escalate', reasons: [...reasons] };
     }
     if (classification.intent === 'greeting') {
       return { action: 'reply', reasons: ['greeting_template'] };
