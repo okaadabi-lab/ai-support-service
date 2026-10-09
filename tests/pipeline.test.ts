@@ -360,6 +360,62 @@ describe('MessagePipeline via POST /v1/messages', () => {
   });
 
   describe('human hand-off', () => {
+    it('stays silent when an agent takes over while the LLM is still working', async () => {
+      let release = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const customer = { channel: 'whatsapp', customer_id: 'c-takeover' };
+      const { conversation_id } = (await ctx.send({ ...customer, text: 'halo' })).body;
+      ctx.provider.enqueue('classify_message', async () => {
+        await gate;
+        return classified('pricing_question').input;
+      });
+
+      const pending = ctx.send({ ...customer, text: 'kak brp harga paket anggrek?' });
+      await vi.waitFor(() => {
+        expect(ctx.provider.callsFor('classify_message')).toHaveLength(2);
+      });
+      ctx.app.container.conversations.setStatus(conversation_id, 'human');
+      release();
+      const { body } = await pending;
+
+      expect(body).toMatchObject({
+        action: 'none',
+        reply_text: null,
+        reasons: ['human_handoff_active'],
+        intent: null,
+        confidence: null,
+        citations: [],
+      });
+      const roles = ctx.app.container.messages
+        .listByConversation(conversation_id)
+        .map((stored) => stored.role);
+      expect(roles).toEqual(['customer', 'assistant', 'customer']);
+    });
+
+    it('does not answer a second message once a concurrent one has escalated', async () => {
+      const { pipeline } = ctx.app.container;
+      ctx.provider
+        .enqueue('classify_message', classified('complaint'), classified('pricing_question'))
+        .enqueue(
+          'compose_answer',
+          answered('Paket Anggrek Rp 12.500.000 kak.', ['paket-dan-harga']),
+        );
+      const customer = { channel: 'whatsapp', customer_id: 'c-burst' };
+
+      const [complaint, question] = await Promise.all([
+        pipeline.handle(message({ ...customer, text: 'kecewa bgt' }), ctx.app.log),
+        pipeline.handle(
+          message({ ...customer, text: 'kak brp harga paket anggrek?' }),
+          ctx.app.log,
+        ),
+      ]);
+
+      expect(complaint.response.action).toBe('escalate');
+      expect(question.response).toMatchObject({ action: 'none', reply_text: null });
+    });
+
     it('hands the conversation to a human after an escalation and keeps the bot silent', async () => {
       const customer = { channel: 'whatsapp', customer_id: 'c-handoff' };
       ctx.provider.enqueue('classify_message', classified('human_request'));

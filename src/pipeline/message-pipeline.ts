@@ -122,7 +122,7 @@ export class MessagePipeline {
     const decision = this.buildDecision(conversation.id, draft, performance.now() - startedAt);
 
     const saved = this.persist(message, decision);
-    if (!saved) {
+    if (saved === null) {
       // Another instance stored this message first (UNIQUE(channel, external_message_id)).
       const stored = this.findStored(message);
       if (stored) {
@@ -136,15 +136,15 @@ export class MessagePipeline {
         conversationId: conversation.id,
         channel: message.channel,
         externalMessageId: message.external_message_id,
-        action: decision.action,
-        reasons: decision.reasons,
-        intent: decision.intent,
-        latencyMs: decision.latencyMs,
+        action: saved.action,
+        reasons: saved.reasons,
+        intent: saved.intent,
+        latencyMs: saved.latencyMs,
         ...(this.deps.logCustomerText ? { text: message.text } : {}),
       },
       'message decision',
     );
-    return { response: toResponse(decision), replayed: false };
+    return { response: toResponse(saved), replayed: false };
   }
 
   private async decide(
@@ -267,35 +267,60 @@ export class MessagePipeline {
   /**
    * Stores the customer message, the decision, any outgoing text and the hand-off in one
    * transaction, so a crash can never leave a message without its decision (which would make
-   * a webhook retry look like a new message). Returns false if the message already exists.
+   * a webhook retry look like a new message). Returns the decision as stored, or null if the
+   * message already exists.
+   *
+   * IMMEDIATE takes the write lock before the reads below, so another process cannot store
+   * the same message or change the conversation status between the check and the insert.
    */
-  private persist(message: IncomingMessage, decision: DecisionRecord): boolean {
+  private persist(message: IncomingMessage, decision: DecisionRecord): DecisionRecord | null {
     const { db, messages, decisions, conversations } = this.deps;
-    return db.transaction(() => {
-      if (messages.findIdByExternalId(message.channel, message.external_message_id) !== undefined) {
-        return false;
-      }
-      const messageId = messages.insertCustomerMessage({
-        conversationId: decision.conversationId,
-        channel: message.channel,
-        externalMessageId: message.external_message_id,
-        text: message.text,
-        receivedAt: message.received_at,
-      });
-      decisions.insert({ ...decision, messageId });
-      if (decision.replyText !== null) {
-        messages.insertAssistantMessage(
-          decision.conversationId,
-          message.channel,
-          decision.replyText,
-        );
-      }
-      if (decision.action === 'escalate') {
-        conversations.setStatus(decision.conversationId, 'human');
-      }
-      return true;
-    })();
+    return db
+      .transaction((): DecisionRecord | null => {
+        if (
+          messages.findIdByExternalId(message.channel, message.external_message_id) !== undefined
+        ) {
+          return null;
+        }
+        // The status was read before the LLM calls. An agent or a concurrent escalation may
+        // have taken over since then, and the bot must not answer over them.
+        const status = conversations.findById(decision.conversationId)?.status;
+        const final =
+          status === 'human' && decision.action !== 'none' ? silenced(decision) : decision;
+        const messageId = messages.insertCustomerMessage({
+          conversationId: final.conversationId,
+          channel: message.channel,
+          externalMessageId: message.external_message_id,
+          text: message.text,
+          receivedAt: message.received_at,
+        });
+        decisions.insert({ ...final, messageId });
+        if (final.replyText !== null) {
+          messages.insertAssistantMessage(final.conversationId, message.channel, final.replyText);
+        }
+        if (final.action === 'escalate') {
+          conversations.setStatus(final.conversationId, 'human');
+        }
+        return final;
+      })
+      .immediate();
   }
+}
+
+/**
+ * Turns a decision into a silent one. Token usage, cost and the classifier's raw output are
+ * kept because those calls did happen; the public fields match any other `none` decision.
+ */
+function silenced(decision: DecisionRecord): DecisionRecord {
+  return {
+    ...decision,
+    action: 'none',
+    reasons: ['human_handoff_active'],
+    replyText: null,
+    intent: null,
+    confidence: null,
+    citations: [],
+  };
 }
 
 async function timed<T>(
