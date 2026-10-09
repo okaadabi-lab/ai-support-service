@@ -61,16 +61,24 @@ export async function withRetry<T>(
   }
 }
 
+/**
+ * Aborts the call's signal after timeoutMs and stops waiting for it at the same moment, so a
+ * provider that ignores the signal still cannot hold the request open.
+ */
 async function runWithTimeout<T>(
   operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,
 ): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
+  let timer: NodeJS.Timeout | undefined;
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new LlmError('timeout', `LLM call timed out after ${timeoutMs} ms`));
+    }, timeoutMs);
+  });
   try {
-    return await operation(controller.signal);
+    return await Promise.race([operation(controller.signal), timedOut]);
   } catch (error) {
     if (controller.signal.aborted) {
       throw new LlmError('timeout', `LLM call timed out after ${timeoutMs} ms`);

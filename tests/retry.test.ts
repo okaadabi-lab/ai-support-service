@@ -64,6 +64,14 @@ describe('withRetry', () => {
     expect(signals[0]?.aborted).toBe(true);
   });
 
+  it('times out a call that ignores the abort signal', async () => {
+    const operation = vi.fn(() => new Promise<string>(() => {}));
+    const error = await withRetry(operation, options({ maxAttempts: 2, timeoutMs: 20 })).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toMatchObject({ attempts: 2, lastError: { kind: 'timeout' } });
+  });
+
   it('gives up after maxAttempts and reports the last error', async () => {
     const operation = vi.fn(() => Promise.reject(LlmError.fromStatus(503, 'unavailable')));
     const error = await withRetry(operation, options({ maxAttempts: 2 })).catch((e: unknown) => e);
