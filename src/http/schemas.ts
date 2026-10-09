@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-const identifier = z.string().trim().min(1).max(128);
+// Instagram message ids are long base64 strings (often 150+ chars), so allow up to 255.
+const identifier = z.string().trim().min(1).max(255);
 
 export const incomingMessageSchema = z.object({
   channel: z

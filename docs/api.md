@@ -61,8 +61,8 @@ Request:
 | Field                 | Rules                                                                     |
 | --------------------- | ------------------------------------------------------------------------- |
 | `channel`             | lowercase, `^[a-z][a-z0-9_-]{1,31}$` (e.g. `whatsapp`, `instagram`)       |
-| `external_message_id` | 1-128 chars; the channel's own message id. Idempotency key with `channel` |
-| `customer_id`         | 1-128 chars; stable per customer on that channel                          |
+| `external_message_id` | 1-255 chars; the channel's own message id. Idempotency key with `channel` |
+| `customer_id`         | 1-255 chars; stable per customer on that channel                          |
 | `customer_name`       | optional, 1-120 chars                                                     |
 | `text`                | 1-4000 chars after trimming                                               |
 | `received_at`         | ISO-8601 date-time with offset                                            |

@@ -92,6 +92,13 @@ describe('HTTP API', () => {
       expect(ctx.provider.calls).toHaveLength(0);
     });
 
+    it('accepts Instagram-length message ids up to 255 characters', async () => {
+      ctx = await createTestApp();
+      const instagramMid = `aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQx${'Q'.repeat(150)}`;
+      expect((await ctx.send({ external_message_id: instagramMid })).statusCode).toBe(201);
+      expect((await ctx.send({ external_message_id: 'x'.repeat(256) })).statusCode).toBe(400);
+    });
+
     it('echoes a safe x-request-id and generates one otherwise', async () => {
       ctx = await createTestApp();
       const echoed = await ctx.app.inject({
