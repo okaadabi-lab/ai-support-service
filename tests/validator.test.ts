@@ -34,9 +34,21 @@ describe('extractAmounts', () => {
       'IDR 4,500,000',
       '4500 ribu',
       '4.500.000',
+      '4,5jt',
+      'Rp4.500.000,-',
+      'IDR 4.5 million',
+      '4500000',
     ]) {
       expect(extractAmounts(text), text).toEqual(new Set(['idr:4500000']));
     }
+  });
+
+  it('reads approximations, billions and dollar amounts', () => {
+    expect(extractAmounts('sekitar 5 jutaan, atau 450rban')).toEqual(
+      new Set(['idr:5000000', 'idr:450000']),
+    );
+    expect(extractAmounts('Rp 1,5 miliar')).toEqual(new Set(['idr:1500000000']));
+    expect(extractAmounts('$300, USD 300 or 300 dollars')).toEqual(new Set(['usd:300']));
   });
 
   it('extracts percentages and ignores small bare numbers such as days and hours', () => {
@@ -73,6 +85,15 @@ describe('OutputValidator', () => {
       { code: 'validation_unsupported_amount', detail: 'idr:3900000' },
     ]);
   });
+
+  it.each(['Paket Melati sekitar 5 jutaan kak.', 'Paket Melati USD 300 kak.'])(
+    'blocks an invented amount written as "%s"',
+    (reply) => {
+      expect(codes(validator.validate(answer(reply), [prices]))).toEqual([
+        'validation_unsupported_amount',
+      ]);
+    },
+  );
 
   it('blocks a price that exists only in a retrieved article the reply did not cite', () => {
     const result = validator.validate(answer('Ongkir ke Depok Rp 350.000 kak.'), [prices, areas]);
